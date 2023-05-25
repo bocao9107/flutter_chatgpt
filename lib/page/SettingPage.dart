@@ -1,14 +1,14 @@
+import 'package:aichat/stores/AIChatStore.dart';
 import 'package:aichat/utils/Chatgpt.dart';
 import 'package:aichat/utils/Config.dart';
 import 'package:aichat/utils/Utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:provider/provider.dart';
 import 'package:rating_dialog/rating_dialog.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:aichat/stores/AIChatStore.dart';
-import 'package:provider/provider.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
@@ -19,7 +19,8 @@ class SettingPage extends StatefulWidget {
 
 class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
   bool isCopying = false;
-  final TextEditingController _textEditingController = TextEditingController();
+  final TextEditingController _keyTextEditingController = TextEditingController();
+  final TextEditingController _urlTextEditingController = TextEditingController();
 
   @override
   void initState() {
@@ -194,9 +195,20 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
                     26,
                     'Customize OpenAI Key',
                     () async {
-                      String cacheKey = await ChatGPT.getCacheOpenAIKey();
-                      _textEditingController.text = cacheKey;
+                      String cacheKey = ChatGPT.getCacheOpenAIKey();
+                      _keyTextEditingController.text = cacheKey;
                       _showCustomOpenAIKeyDialog();
+                    },
+                  ),
+                  renderItemWidget(
+                    'images/url_icon.png',
+                    Colors.deepPurpleAccent,
+                    26,
+                    'Customize OpenAI Base URL',
+                    () async {
+                      String cacheUrl = ChatGPT.getCacheOpenAIBaseUrl();
+                      _urlTextEditingController.text = cacheUrl;
+                      _showCustomOpenAIUrlDialog();
                     },
                   ),
 
@@ -313,7 +325,7 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _textEditingController,
+                controller: _keyTextEditingController,
                 autofocus: true,
                 decoration: const InputDecoration(hintText: 'Please input your key'),
               ),
@@ -402,20 +414,92 @@ class _SettingPageState extends State<SettingPage> with WidgetsBindingObserver {
             TextButton(
               child: const Text('Cancel'),
               onPressed: () {
-                _textEditingController.clear();
+                _keyTextEditingController.clear();
                 Navigator.of(context).pop(false);
               },
             ),
             TextButton(
               child: const Text('Confirm'),
               onPressed: () async {
-                await ChatGPT.setOpenAIKey(_textEditingController.text);
-                _textEditingController.clear();
-                Navigator.of(context).pop(true);
-                EasyLoading.showToast(
-                  'Successful setting!',
-                  dismissOnTap: true,
-                );
+                ChatGPT.setOpenAIKey(_keyTextEditingController.text).then((_) {
+                  _keyTextEditingController.clear();
+                  Navigator.of(context).pop(true);
+                  EasyLoading.showToast(
+                    'Successful setting!',
+                    dismissOnTap: true,
+                  );
+                });
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCustomOpenAIUrlDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          scrollable: true,
+          title: const Text('Custom OpenAI Base URL'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _urlTextEditingController,
+                autofocus: true,
+                decoration: const InputDecoration(hintText: 'Please input your OpenAI host'),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                children: const [
+                  Text(
+                    "You can set openai host where access to the official OpenAI host is restricted or unavailable, "
+                    "allowing you to configure an alternative host for the specific needs.\n"
+                    "Use https://api.openai.com by default.",
+                    textAlign: TextAlign.start,
+                    softWrap: true,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 20 / 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    "This option is only applied when you provide a custom apiKey.",
+                    textAlign: TextAlign.start,
+                    softWrap: true,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 20 / 14,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                _urlTextEditingController.clear();
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () async {
+                ChatGPT.setOpenAIBaseUrl(_urlTextEditingController.text).then((_) {
+                  _urlTextEditingController.clear();
+                  Navigator.of(context).pop(true);
+                  EasyLoading.showToast(
+                    'Successful setting!',
+                    dismissOnTap: true,
+                  );
+                });
               },
             ),
           ],
